@@ -11,6 +11,8 @@ import javafx.fxml.FXML;
 import javafx.geometry.Point2D;
 import javafx.scene.Group;
 import javafx.scene.Node;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.MouseEvent;
@@ -36,6 +38,8 @@ public class CanvasController {
     @FXML private StackPane canvasHost;
     @FXML private Group zoomGroup;
     @FXML private Pane drawingPane;
+    @FXML private Canvas topRuler;
+    @FXML private Canvas leftRuler;
 
     @FXML private ToggleButton lineTool;
     @FXML private ToggleButton rectangleTool;
@@ -52,6 +56,9 @@ public class CanvasController {
 
     private static final double SNAP_RADIUS = 10.0;
     private static final double SNAP_INDICATOR_RADIUS = 4.0;
+    private static final double RULER_SIZE = 24.0;
+    private static final double RULER_MAJOR_TICK = 50.0;
+    private static final double RULER_MINOR_TICK = 10.0;
 
     private double zoom = 1.0;
     private static final double ZOOM_STEP = 1.1;
@@ -120,6 +127,15 @@ public class CanvasController {
         snapIndicator.setVisible(false);
         drawingPane.getChildren().add(snapIndicator);
 
+        topRuler.setHeight(RULER_SIZE);
+        leftRuler.setWidth(RULER_SIZE);
+        topRuler.widthProperty().bind(canvasHost.widthProperty());
+        leftRuler.heightProperty().bind(canvasHost.heightProperty());
+        topRuler.heightProperty().addListener((obs, oldValue, newValue) -> drawRulers());
+        topRuler.widthProperty().addListener((obs, oldValue, newValue) -> drawRulers());
+        leftRuler.heightProperty().addListener((obs, oldValue, newValue) -> drawRulers());
+        leftRuler.widthProperty().addListener((obs, oldValue, newValue) -> drawRulers());
+
         applyZoom();
     }
 
@@ -154,6 +170,7 @@ public class CanvasController {
     private void applyZoom() {
         zoomGroup.setScaleX(zoom);
         zoomGroup.setScaleY(zoom);
+        drawRulers();
     }
 
     @FXML
@@ -387,5 +404,68 @@ public class CanvasController {
             }
         }
         return new Point2D(x, y);
+    }
+
+    private void drawRulers() {
+        drawTopRuler();
+        drawLeftRuler();
+    }
+
+    private void drawTopRuler() {
+        if (topRuler == null) {
+            return;
+        }
+        GraphicsContext gc = topRuler.getGraphicsContext2D();
+        double width = topRuler.getWidth();
+        double height = topRuler.getHeight();
+        gc.clearRect(0, 0, width, height);
+        gc.setFill(Color.web("#f3f4f6"));
+        gc.fillRect(0, 0, width, height);
+        gc.setStroke(Color.web("#6b7280"));
+        gc.setLineWidth(1.0);
+        gc.setFill(Color.web("#374151"));
+
+        double maxUnits = drawingPane.getPrefWidth();
+        for (double unit = 0; unit <= maxUnits; unit += RULER_MINOR_TICK) {
+            double x = unit * zoom;
+            if (x > width) {
+                break;
+            }
+            boolean major = unit % RULER_MAJOR_TICK == 0;
+            double tickHeight = major ? height : height * 0.6;
+            gc.strokeLine(x + 0.5, height, x + 0.5, height - tickHeight);
+            if (major) {
+                gc.fillText(String.valueOf((int) unit), x + 2, height - tickHeight - 2);
+            }
+        }
+    }
+
+    private void drawLeftRuler() {
+        if (leftRuler == null) {
+            return;
+        }
+        GraphicsContext gc = leftRuler.getGraphicsContext2D();
+        double width = leftRuler.getWidth();
+        double height = leftRuler.getHeight();
+        gc.clearRect(0, 0, width, height);
+        gc.setFill(Color.web("#f3f4f6"));
+        gc.fillRect(0, 0, width, height);
+        gc.setStroke(Color.web("#6b7280"));
+        gc.setLineWidth(1.0);
+        gc.setFill(Color.web("#374151"));
+
+        double maxUnits = drawingPane.getPrefHeight();
+        for (double unit = 0; unit <= maxUnits; unit += RULER_MINOR_TICK) {
+            double y = unit * zoom;
+            if (y > height) {
+                break;
+            }
+            boolean major = unit % RULER_MAJOR_TICK == 0;
+            double tickWidth = major ? width : width * 0.6;
+            gc.strokeLine(width, y + 0.5, width - tickWidth, y + 0.5);
+            if (major) {
+                gc.fillText(String.valueOf((int) unit), 2, y - 2);
+            }
+        }
     }
 }

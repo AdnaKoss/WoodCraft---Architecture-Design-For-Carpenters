@@ -9,6 +9,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.transform.Affine;
 
 public class SelectionOverlay {
 
@@ -102,6 +103,7 @@ public class SelectionOverlay {
     public void clear() {
         target = null;
         dragMode = DragMode.NONE;
+        overlayGroup.getTransforms().clear();
         setVisible(false);
     }
 
@@ -255,7 +257,8 @@ public class SelectionOverlay {
     public void update() {
         if (target == null || host == null) return;
         overlayGroup.toFront();
-        Bounds bounds = target.getBoundsInParent();
+        Bounds bounds = target.getBoundsInLocal();
+        overlayGroup.getTransforms().setAll(new Affine(target.getLocalToParentTransform()));
         outline.setX(bounds.getMinX());
         outline.setY(bounds.getMinY());
         outline.setWidth(bounds.getWidth());
